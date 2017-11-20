@@ -1057,11 +1057,11 @@ public class SlaveTemplate implements Describable<SlaveTemplate> {
     }
 
     public Secret getAdminPassword() {
-        return amiType.isWindows() ? ((WindowsData) amiType).getPassword() : Secret.fromString("");
+        return amiType.isWindows() && !amiType.isSelfConnecting()? ((WindowsData) amiType).getPassword() : Secret.fromString("");
     }
 
     public boolean isUseHTTPS() {
-        return amiType.isWindows() && ((WindowsData) amiType).isUseHTTPS();
+        return amiType.isWindows() && !amiType.isSelfConnecting() && ((WindowsData) amiType).isUseHTTPS();
     }
 
     @Extension

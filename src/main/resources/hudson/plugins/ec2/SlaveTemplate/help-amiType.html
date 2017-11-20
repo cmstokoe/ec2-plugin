@@ -3,10 +3,11 @@
   <ul>
     <li>Unix: connected to with ssh.</li>
     <li>Windows: connected to with CIFS and WinRM/WinRS.</li>
+    <li>Windows self-connecting: The agent connects to the master itself</li>
   </ul>
   
   <hr/>
-  Notes for Windows AMI:
+  Notes for Windows non-self-connecting AMI:
   <br/>
   EC2 Windows slaves are accessed with CIFS (to send the initial Jenkins slave.jar) and WinRM to launch and connect
 to the slave afterward.
