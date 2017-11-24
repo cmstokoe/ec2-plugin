@@ -46,6 +46,7 @@ public class EC2Tag extends AbstractDescribableImpl<EC2Tag> {
      * Tag name for the specific jenkings URL tag.
      */
     public static final String TAG_NAME_JENKINS_URL = "jenkins_url";
+    public static final String TAG_NAME_NODE_NAME = "node_name";
 
     @DataBoundConstructor
     public EC2Tag(String name, String value) {

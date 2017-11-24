@@ -581,6 +581,7 @@ public class SlaveTemplate implements Describable<SlaveTemplate> {
                         EC2Cloud.EC2_SLAVE_TYPE_DEMAND, description)));
             }
             instTags.add(new Tag(EC2Tag.TAG_NAME_JENKINS_URL, Jenkins.getInstance().getRootUrl()));
+            instTags.add(new Tag(EC2Tag.TAG_NAME_NODE_NAME, description));
 
             DescribeInstancesRequest diRequest = new DescribeInstancesRequest();
             diRequest.setFilters(diFilters);
