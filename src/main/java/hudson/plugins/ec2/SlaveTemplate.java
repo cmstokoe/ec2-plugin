@@ -581,7 +581,6 @@ public class SlaveTemplate implements Describable<SlaveTemplate> {
                         EC2Cloud.EC2_SLAVE_TYPE_DEMAND, description)));
             }
             instTags.add(new Tag(EC2Tag.TAG_NAME_JENKINS_URL, Jenkins.getInstance().getRootUrl()));
-            instTags.add(new Tag(EC2Tag.TAG_NAME_NODE_NAME, description));
 
             DescribeInstancesRequest diRequest = new DescribeInstancesRequest();
             diRequest.setFilters(diFilters);
@@ -624,6 +623,13 @@ public class SlaveTemplate implements Describable<SlaveTemplate> {
 
                 // Have to create a new instance
                 Instance inst = ec2.runInstances(riRequest).getReservation().getInstances().get(0);
+                
+                // Add node tag after we have the inst ID
+                instTags.add(new Tag(EC2Tag.TAG_NAME_NODE_NAME, description + " (" + inst.getInstanceId() + ")"));
+                CreateTagsRequest tagRequest = new CreateTagsRequest();
+                tagRequest.withResources(inst.getInstanceId()).setTags(instTags);              
+                ec2.createTags(tagRequest);
+               
 
                 logProvisionInfo(logger, "No existing instance found - created new instance: " + inst);
                 return newOndemandSlave(inst);
@@ -647,6 +653,13 @@ public class SlaveTemplate implements Describable<SlaveTemplate> {
                 logProvisionInfo(logger, "Using existing slave: " + ec2Node[0].getInstanceId());
                 return ec2Node[0];
             }
+            
+            //required here?
+            // Add node tag after we have the inst ID
+            instTags.add(new Tag(EC2Tag.TAG_NAME_NODE_NAME, description + " (" + existingInstance.getInstanceId() + ")"));
+            CreateTagsRequest tagRequest = new CreateTagsRequest();
+            tagRequest.withResources(existingInstance.getInstanceId()).setTags(instTags);              
+            ec2.createTags(tagRequest);
 
             // Existing slave not found
             logProvision(logger, "Creating new slave for existing instance: " + existingInstance);
@@ -856,6 +869,7 @@ public class SlaveTemplate implements Describable<SlaveTemplate> {
                 instTags.add(new Tag(EC2Tag.TAG_NAME_JENKINS_SLAVE_TYPE, EC2Cloud.getSlaveTypeTagValue(
                         EC2Cloud.EC2_SLAVE_TYPE_SPOT, description)));
             }
+            instTags.add(new Tag(EC2Tag.TAG_NAME_JENKINS_URL, Jenkins.getInstance().getRootUrl()));
 
             if (StringUtils.isNotBlank(getIamInstanceProfile())) {
                 launchSpecification.setIamInstanceProfile(new IamInstanceProfileSpecification().withArn(getIamInstanceProfile()));
@@ -883,6 +897,9 @@ public class SlaveTemplate implements Describable<SlaveTemplate> {
                 throw new AmazonClientException("Spot instance request is null");
             }
             String slaveName = spotInstReq.getSpotInstanceRequestId();
+                  
+            // Add node tag after we have the inst ID
+            instTags.add(new Tag(EC2Tag.TAG_NAME_NODE_NAME, description + " (" + slaveName + ")"));
 
             /* Now that we have our Spot request, we can set tags on it */
             if (instTags != null) {

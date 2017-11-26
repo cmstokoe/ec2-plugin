@@ -335,9 +335,6 @@ public abstract class EC2AbstractSlave extends Slave {
         /* Get rid of the old tags, as represented by ourselves. */
         clearLiveInstancedata();
         
-        //dirty hack. add node name as tag here
-        result.tags.add(new EC2Tag("nodeName",result.getNodeName()));
-        
         /* Set the new tags, as represented by our successor */
         result.pushLiveInstancedata();
         return result;
