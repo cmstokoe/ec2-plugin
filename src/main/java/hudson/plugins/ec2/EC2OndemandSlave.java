@@ -1,29 +1,26 @@
 package hudson.plugins.ec2;
 
-import hudson.Extension;
-import hudson.model.Descriptor.FormException;
-import hudson.model.Hudson;
-import hudson.model.Node;
-import hudson.plugins.ec2.ssh.EC2UnixLauncher;
-import hudson.plugins.ec2.win.EC2WindowsLauncher;
-import hudson.plugins.ec2.win.EC2WindowsSelfConnectingLauncher;
-import hudson.slaves.NodeProperty;
-
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import jenkins.model.Jenkins;
-import net.sf.json.JSONObject;
-
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.services.ec2.AmazonEC2;
-import com.amazonaws.services.ec2.model.*;
+import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
+
+import hudson.Extension;
+import hudson.model.Node;
+import hudson.model.Descriptor.FormException;
+import hudson.plugins.ec2.ssh.EC2UnixLauncher;
+import hudson.plugins.ec2.win.EC2WindowsLauncher;
+import hudson.slaves.NodeProperty;
+import jenkins.model.Jenkins;
+import net.sf.json.JSONObject;
 
 /**
  * Slave running on EC2.
@@ -47,7 +44,7 @@ public final class EC2OndemandSlave extends EC2AbstractSlave {
     public EC2OndemandSlave(String name, String instanceId, String description, String remoteFS, int numExecutors, String labelString, Mode mode, String initScript, String tmpDir, List<? extends NodeProperty<?>> nodeProperties, String remoteAdmin, String jvmopts, boolean stopOnTerminate, String idleTerminationMinutes, String publicDNS, String privateDNS, List<EC2Tag> tags, String cloudName, boolean usePrivateDnsName, boolean useDedicatedTenancy, int launchTimeout, AMITypeData amiType)
             throws FormException, IOException {
 
-        super(name, instanceId, description, remoteFS, numExecutors, mode, labelString, amiType.isWindows() ? (amiType.isSelfConnecting() ? new EC2WindowsSelfConnectingLauncher() : new EC2WindowsLauncher()) 
+        super(name, instanceId, description, remoteFS, numExecutors, mode, labelString, amiType.isWindows() ? (amiType.isSelfConnecting() ? null : new EC2WindowsLauncher()) 
                 : new EC2UnixLauncher(), new EC2RetentionStrategy(idleTerminationMinutes), initScript, tmpDir, nodeProperties, remoteAdmin, jvmopts, stopOnTerminate, idleTerminationMinutes, tags, cloudName, usePrivateDnsName, useDedicatedTenancy, launchTimeout, amiType);
 
         this.publicDNS = publicDNS;

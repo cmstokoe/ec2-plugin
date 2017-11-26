@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import jenkins.model.Jenkins;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import com.amazonaws.AmazonClientException;
@@ -20,12 +19,11 @@ import com.amazonaws.services.ec2.model.SpotInstanceState;
 import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
 
 import hudson.Extension;
-import hudson.model.Hudson;
 import hudson.model.Descriptor.FormException;
 import hudson.plugins.ec2.ssh.EC2UnixLauncher;
 import hudson.plugins.ec2.win.EC2WindowsLauncher;
-import hudson.plugins.ec2.win.EC2WindowsSelfConnectingLauncher;
 import hudson.slaves.NodeProperty;
+import jenkins.model.Jenkins;
 
 public final class EC2SpotSlave extends EC2AbstractSlave {
     private static final Logger LOGGER = Logger.getLogger(EC2SpotSlave.class.getName());
@@ -41,7 +39,7 @@ public final class EC2SpotSlave extends EC2AbstractSlave {
     public EC2SpotSlave(String name, String spotInstanceRequestId, String description, String remoteFS, int numExecutors, Mode mode, String initScript, String tmpDir, String labelString, List<? extends NodeProperty<?>> nodeProperties, String remoteAdmin, String jvmopts, String idleTerminationMinutes, List<EC2Tag> tags, String cloudName, boolean usePrivateDnsName, int launchTimeout, AMITypeData amiType)
             throws FormException, IOException {
 
-        super(name, "", description, remoteFS, numExecutors, mode, labelString, amiType.isWindows() ?  (amiType.isSelfConnecting() ? new EC2WindowsSelfConnectingLauncher() : new EC2WindowsLauncher()):
+        super(name, "", description, remoteFS, numExecutors, mode, labelString, amiType.isWindows() ?  (amiType.isSelfConnecting() ? null : new EC2WindowsLauncher()):
                 new EC2UnixLauncher(), new EC2RetentionStrategy(idleTerminationMinutes), initScript, tmpDir, nodeProperties, remoteAdmin, jvmopts, false, idleTerminationMinutes, tags, cloudName, usePrivateDnsName, false, launchTimeout, amiType);
 
         this.name = name;
