@@ -8,25 +8,25 @@ import hudson.model.Descriptor;
 import hudson.util.Secret;
 import org.kohsuke.stapler.DataBoundConstructor;
 
-public class WindowsSelfConnectingData extends AMITypeData {
+public class SelfConnectingData extends AMITypeData {
 
     private final String bootDelay;
 
     @DataBoundConstructor
-    public WindowsSelfConnectingData(String password, boolean useHTTPS, String bootDelay) {
+    public SelfConnectingData(String password, boolean useHTTPS, String bootDelay) {
         this.bootDelay = bootDelay;
     }
 
     @Override
     public boolean isWindows() {
-        return true;
+        return false;
     }
 
     @Override
     public boolean isUnix() {
         return false;
     }
-    
+
     @Override
     public boolean isSelfConnecting() {
         return true;
@@ -68,7 +68,7 @@ public class WindowsSelfConnectingData extends AMITypeData {
             return false;
         if (this.getClass() != obj.getClass())
             return false;
-        final WindowsSelfConnectingData other = (WindowsSelfConnectingData) obj;
+        final SelfConnectingData other = (SelfConnectingData) obj;
         if (bootDelay == null) {
             if (other.bootDelay != null)
                 return false;
