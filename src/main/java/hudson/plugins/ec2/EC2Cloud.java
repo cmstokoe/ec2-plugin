@@ -743,19 +743,27 @@ public abstract class EC2Cloud extends Cloud {
 
         public FormValidation doCheckPrivateKey(@QueryParameter String value) throws IOException, ServletException {
             boolean hasStart = false, hasEnd = false;
+            boolean hasPrivateKey = false;
             BufferedReader br = new BufferedReader(new StringReader(value));
             String line;
             while ((line = br.readLine()) != null) {
+                hasPrivateKey = true;
                 if (line.equals("-----BEGIN RSA PRIVATE KEY-----"))
                     hasStart = true;
                 if (line.equals("-----END RSA PRIVATE KEY-----"))
                     hasEnd = true;
             }
-            if (!hasStart)
-                return FormValidation.error("This doesn't look like a private key at all");
-            if (!hasEnd)
-                return FormValidation
-                        .error("The private key is missing the trailing 'END RSA PRIVATE KEY' marker. Copy&paste error?");
+
+            if(hasPrivateKey) {
+                if (!hasStart)
+                    return FormValidation.error("This doesn't look like a private key at all");
+                if (!hasEnd)
+                    return FormValidation
+                            .error("The private key is missing the trailing 'END RSA PRIVATE KEY' marker. Copy&paste error?");
+            } else {            
+                return FormValidation.ok("The private key is empty. A secure connection to the agent won't be possible.");
+            }
+
             return FormValidation.ok();
         }
 

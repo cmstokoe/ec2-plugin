@@ -27,6 +27,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
 import java.security.UnrecoverableKeyException;
+import java.util.logging.Logger;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.services.ec2.AmazonEC2;
@@ -44,6 +45,7 @@ import jenkins.bouncycastle.api.PEMEncodable;
  */
 public class EC2PrivateKey {
 
+    private static final Logger LOGGER = Logger.getLogger(EC2PrivateKey.class.getName());
     private final Secret privateKey;
 
     EC2PrivateKey(String privateKey) {
@@ -97,23 +99,27 @@ public class EC2PrivateKey {
      * Finds the {@link KeyPairInfo} that corresponds to this key in EC2.
      */
     public com.amazonaws.services.ec2.model.KeyPair find(AmazonEC2 ec2) throws IOException, AmazonClientException {
-        String fp = getFingerprint();
-        String pfp = getPublicFingerprint();
-        for (KeyPairInfo kp : ec2.describeKeyPairs().getKeyPairs()) {
-            if (kp.getKeyFingerprint().equalsIgnoreCase(fp)) {
-                com.amazonaws.services.ec2.model.KeyPair keyPair = new com.amazonaws.services.ec2.model.KeyPair();
-                keyPair.setKeyName(kp.getKeyName());
-                keyPair.setKeyFingerprint(fp);
-                keyPair.setKeyMaterial(Secret.toString(privateKey));
-                return keyPair;
+        try {
+            String fp = getFingerprint();
+            String pfp = getPublicFingerprint();
+            for (KeyPairInfo kp : ec2.describeKeyPairs().getKeyPairs()) {
+                if (kp.getKeyFingerprint().equalsIgnoreCase(fp)) {
+                    com.amazonaws.services.ec2.model.KeyPair keyPair = new com.amazonaws.services.ec2.model.KeyPair();
+                    keyPair.setKeyName(kp.getKeyName());
+                    keyPair.setKeyFingerprint(fp);
+                    keyPair.setKeyMaterial(Secret.toString(privateKey));
+                    return keyPair;
+                }
+                if (kp.getKeyFingerprint().equalsIgnoreCase(pfp)) {
+                    com.amazonaws.services.ec2.model.KeyPair keyPair = new com.amazonaws.services.ec2.model.KeyPair();
+                    keyPair.setKeyName(kp.getKeyName());
+                    keyPair.setKeyFingerprint(pfp);
+                    keyPair.setKeyMaterial(Secret.toString(privateKey));
+                    return keyPair;
+                }
             }
-            if (kp.getKeyFingerprint().equalsIgnoreCase(pfp)) {
-                com.amazonaws.services.ec2.model.KeyPair keyPair = new com.amazonaws.services.ec2.model.KeyPair();
-                keyPair.setKeyName(kp.getKeyName());
-                keyPair.setKeyFingerprint(pfp);
-                keyPair.setKeyMaterial(Secret.toString(privateKey));
-                return keyPair;
-            }
+        } catch (Exception e) {
+            LOGGER.info("No key pair specified.");
         }
         return null;
     }
