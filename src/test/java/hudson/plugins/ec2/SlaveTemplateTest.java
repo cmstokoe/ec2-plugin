@@ -44,7 +44,8 @@ import org.jvnet.hudson.test.JenkinsRule;
  */
 public class SlaveTemplateTest {
 
-    @Rule public JenkinsRule r = new JenkinsRule();
+    @Rule
+    public JenkinsRule r = new JenkinsRule();
 
     @Before
     public void setUp() throws Exception {
@@ -227,24 +228,24 @@ public class SlaveTemplateTest {
 
     @Test
     public void testWindowsConfigRoundTrip() throws Exception {
-        String ami = "ami1";
         String description = "foo ami";
-
-        EC2Tag tag1 = new EC2Tag("name1", "value1");
-        EC2Tag tag2 = new EC2Tag("name2", "value2");
-        List<EC2Tag> tags = new ArrayList<EC2Tag>();
-        tags.add(tag1);
-        tags.add(tag2);
-
-        SlaveTemplate orig = new SlaveTemplate(ami, EC2AbstractSlave.TEST_ZONE, null, "default", "foo", InstanceType.M1Large, false, "ttt", Node.Mode.NORMAL, description, "bar", "bbb", "aaa", "10", "rrr", new WindowsData("password", false, ""), "-Xmx1g", false, "subnet 456", tags, null, false, null, "", true, false, "", false, "");
-
-        List<SlaveTemplate> templates = new ArrayList<SlaveTemplate>();
-        templates.add(orig);
-
-        AmazonEC2Cloud ac = new AmazonEC2Cloud("us-east-1", false, "abc", "us-east-1", "ghi", "3", templates);
-        r.jenkins.clouds.add(ac);
+        SlaveTemplate orig = initializeSlaveTemplate(description, new WindowsData("password", false, ""));
 
         r.submit(r.createWebClient().goTo("configure").getFormByName("config"));
+
+        SlaveTemplate received = ((EC2Cloud) r.jenkins.clouds.iterator().next()).getTemplate(description);
+        assertEquals(orig.getAdminPassword(), received.getAdminPassword());
+        assertEquals(orig.amiType, received.amiType);
+        r.assertEqualBeans(orig, received, "amiType");
+    }
+
+    @Test
+    public void testSelfConnectingConfigRoundTrip() throws Exception {
+        String description = "foo ami";
+        SlaveTemplate orig = initializeSlaveTemplate(description, new SelfConnectingData("password", false, ""));
+
+        r.submit(r.createWebClient().goTo("configure").getFormByName("config"));
+
         SlaveTemplate received = ((EC2Cloud) r.jenkins.clouds.iterator().next()).getTemplate(description);
         assertEquals(orig.getAdminPassword(), received.getAdminPassword());
         assertEquals(orig.amiType, received.amiType);
@@ -253,25 +254,29 @@ public class SlaveTemplateTest {
 
     @Test
     public void testUnixConfigRoundTrip() throws Exception {
-        String ami = "ami1";
         String description = "foo ami";
+        SlaveTemplate orig = initializeSlaveTemplate(description, new UnixData("sudo", null, "22"));
 
+        r.submit(r.createWebClient().goTo("configure").getFormByName("config"));
+
+        SlaveTemplate received = ((EC2Cloud) r.jenkins.clouds.iterator().next()).getTemplate(description);
+        r.assertEqualBeans(orig, received, "amiType");
+    }
+
+    private SlaveTemplate initializeSlaveTemplate(String description, AMITypeData amiTypeData) {
         EC2Tag tag1 = new EC2Tag("name1", "value1");
         EC2Tag tag2 = new EC2Tag("name2", "value2");
         List<EC2Tag> tags = new ArrayList<EC2Tag>();
         tags.add(tag1);
         tags.add(tag2);
 
-        SlaveTemplate orig = new SlaveTemplate(ami, EC2AbstractSlave.TEST_ZONE, null, "default", "foo", InstanceType.M1Large, false, "ttt", Node.Mode.NORMAL, description, "bar", "bbb", "aaa", "10", "rrr", new UnixData("sudo", null, "22"), "-Xmx1g", false, "subnet 456", tags, null, false, null, "", true, false, "", false, "");
+        SlaveTemplate orig = new SlaveTemplate("ami1", EC2AbstractSlave.TEST_ZONE, null, "default", "foo", InstanceType.M1Large, false, "ttt", Node.Mode.NORMAL, description, "bar", "bbb", "aaa", "10", "rrr", amiTypeData, "-Xmx1g", false, "subnet 456", tags, null, false, null, "", true, false, "", false, "");
 
         List<SlaveTemplate> templates = new ArrayList<SlaveTemplate>();
         templates.add(orig);
 
         AmazonEC2Cloud ac = new AmazonEC2Cloud("us-east-1", false, "abc", "us-east-1", "ghi", "3", templates);
         r.jenkins.clouds.add(ac);
-
-        r.submit(r.createWebClient().goTo("configure").getFormByName("config"));
-        SlaveTemplate received = ((EC2Cloud) r.jenkins.clouds.iterator().next()).getTemplate(description);
-        r.assertEqualBeans(orig, received, "amiType");
+        return orig;
     }
 }
