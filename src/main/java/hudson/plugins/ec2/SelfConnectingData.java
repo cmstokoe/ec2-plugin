@@ -2,11 +2,10 @@ package hudson.plugins.ec2;
 
 import java.util.concurrent.TimeUnit;
 
+import org.kohsuke.stapler.DataBoundConstructor;
+
 import hudson.Extension;
 import hudson.model.Descriptor;
-
-import hudson.util.Secret;
-import org.kohsuke.stapler.DataBoundConstructor;
 
 public class SelfConnectingData extends AMITypeData {
 
