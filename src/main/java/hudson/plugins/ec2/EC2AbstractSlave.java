@@ -23,12 +23,10 @@
  */
 package hudson.plugins.ec2;
 
-import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.Util;
 import hudson.model.Computer;
 import hudson.model.Descriptor;
 import hudson.model.Descriptor.FormException;
-import hudson.model.Hudson;
 import hudson.model.Node;
 import hudson.model.Slave;
 import hudson.slaves.NodeProperty;
@@ -87,6 +85,7 @@ public abstract class EC2AbstractSlave extends Slave {
     public final String remoteAdmin; // e.g. 'ubuntu'
 
     public final String templateDescription;
+    public final String secret;
 
     public final String jvmopts; // e.g. -Xmx1g
     public final boolean stopOnTerminate;
@@ -128,13 +127,15 @@ public abstract class EC2AbstractSlave extends Slave {
 
     public static final String TEST_ZONE = "testZone";
 
-    public EC2AbstractSlave(String name, String instanceId, String description, String remoteFS, int numExecutors, Mode mode, String labelString, ComputerLauncher launcher, RetentionStrategy<EC2Computer> retentionStrategy, String initScript, String tmpDir, List<? extends NodeProperty<?>> nodeProperties, String remoteAdmin, String jvmopts, boolean stopOnTerminate, String idleTerminationMinutes, List<EC2Tag> tags, String cloudName, boolean usePrivateDnsName, boolean useDedicatedTenancy, int launchTimeout, AMITypeData amiType)
+
+    public EC2AbstractSlave(String name, String instanceId, String description, String templateDescription, String secret, String remoteFS, int numExecutors, Mode mode, String labelString, ComputerLauncher launcher, RetentionStrategy<EC2Computer> retentionStrategy, String initScript, String tmpDir, List<? extends NodeProperty<?>> nodeProperties, String remoteAdmin, String jvmopts, boolean stopOnTerminate, String idleTerminationMinutes, List<EC2Tag> tags, String cloudName, boolean usePrivateDnsName, boolean useDedicatedTenancy, int launchTimeout, AMITypeData amiType)
             throws FormException, IOException {
 
-        super(name, "", remoteFS, numExecutors, mode, labelString, launcher, retentionStrategy, nodeProperties);
+        super(name, description, remoteFS, numExecutors, mode, labelString, launcher, retentionStrategy, nodeProperties);
 
         this.instanceId = instanceId;
-        this.templateDescription = description;
+        this.templateDescription = templateDescription;
+        this.secret = secret;
         this.initScript = initScript;
         this.tmpDir = tmpDir;
         this.remoteAdmin = remoteAdmin;
