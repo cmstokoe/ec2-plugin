@@ -47,7 +47,7 @@ public class SelfConnectingData extends AMITypeData {
     public static class DescriptorImpl extends Descriptor<AMITypeData> {
         @Override
         public String getDisplayName() {
-            return "windows_self_connecting";
+            return "self_connecting";
         }
     }
 
