@@ -30,17 +30,10 @@ public final class EC2SpotSlave extends EC2AbstractSlave {
 
     private final String spotInstanceRequestId;
 
-    public EC2SpotSlave(String name, String spotInstanceRequestId, String description, String remoteFS, int numExecutors, Mode mode, String initScript, String tmpDir, String labelString, String remoteAdmin, String jvmopts, String idleTerminationMinutes, List<EC2Tag> tags, String cloudName, boolean usePrivateDnsName, int launchTimeout, AMITypeData amiType)
-            throws FormException, IOException {
-        this(description + " (" + name + ")", spotInstanceRequestId, description, remoteFS, numExecutors, mode, initScript, tmpDir, labelString, Collections.<NodeProperty<?>> emptyList(), remoteAdmin, jvmopts, idleTerminationMinutes, tags, cloudName, usePrivateDnsName, launchTimeout, amiType);
-    }
-
     @DataBoundConstructor
-    public EC2SpotSlave(String name, String spotInstanceRequestId, String description, String remoteFS, int numExecutors, Mode mode, String initScript, String tmpDir, String labelString, List<? extends NodeProperty<?>> nodeProperties, String remoteAdmin, String jvmopts, String idleTerminationMinutes, List<EC2Tag> tags, String cloudName, boolean usePrivateDnsName, int launchTimeout, AMITypeData amiType)
+    public EC2SpotSlave(String name, String spotInstanceRequestId, String description, String templateDescription, String secret, String remoteFS, int numExecutors, Mode mode, String initScript, String tmpDir, String labelString, List<? extends NodeProperty<?>> nodeProperties, String remoteAdmin, String jvmopts, String idleTerminationMinutes, List<EC2Tag> tags, String cloudName, boolean usePrivateDnsName, int launchTimeout, AMITypeData amiType)
             throws FormException, IOException {
-
-        super(name, "", description, remoteFS, numExecutors, mode, labelString, amiType.isWindows() ?  (amiType.isSelfConnecting() ? null : new EC2WindowsLauncher()):
-                new EC2UnixLauncher(), new EC2RetentionStrategy(idleTerminationMinutes), initScript, tmpDir, nodeProperties, remoteAdmin, jvmopts, false, idleTerminationMinutes, tags, cloudName, usePrivateDnsName, false, launchTimeout, amiType);
+        super(name, "", description, templateDescription, secret, remoteFS, numExecutors, mode, labelString, amiType.isSelfConnecting() ? null : (amiType.isWindows() ? new EC2WindowsLauncher() : new EC2UnixLauncher()), new EC2RetentionStrategy(idleTerminationMinutes), initScript, tmpDir, nodeProperties, remoteAdmin, jvmopts, false, idleTerminationMinutes, tags, cloudName, usePrivateDnsName, false, launchTimeout, amiType);
 
         this.name = name;
         this.spotInstanceRequestId = spotInstanceRequestId;
