@@ -546,12 +546,19 @@ public abstract class EC2Cloud extends Cloud {
             List<PlannedNode> r = new ArrayList<PlannedNode>();
             List<String> launched = new ArrayList<String>();
             final SlaveTemplate t = getTemplate(label);
-            LOGGER.log(Level.INFO, "Attempting to provision slave from template " + t + " needed by excess workload of " + excessWorkload + " units of label '" + label + "'");
+            LOGGER.log(Level.INFO, "Attempting to provision slave from template " + t + " needed by excess workload of "
+                    + excessWorkload + " units of label '" + label + "'");
             if (label == null) {
                 LOGGER.log(Level.WARNING, String.format("Label is null - can't calculate how many executors slave will have. Using %s number of executors", t.getNumExecutors()));
             }
-            while (excessWorkload > 0) {
 
+            //if we have some load, add additional Executers
+            int additionalExecuters = t.getAdditionalExecuters();
+            if (excessWorkload > 0 && additionalExecuters > 0) {
+                excessWorkload += additionalExecuters;
+            }    
+            
+            while (excessWorkload > 0) { 
                 final EC2AbstractSlave slave = getNewOrExistingAvailableSlave(t, label, false, launched);
                 // Returned null if a new node could not be created
                 if (slave == null)
@@ -571,11 +578,11 @@ public abstract class EC2Cloud extends Cloud {
                             return tryToCallSlave(slave, t);
                         }
                     }), t.getNumExecutors()));
-                    
+
                     launched.add(slave.getInstanceId());
                 }
 
-                excessWorkload -= t.getNumExecutors();
+                excessWorkload -= t.getNumExecutors();               
             }
             LOGGER.log(Level.INFO, "Attempting provision - finished, excess workload: " + excessWorkload);
             return r;

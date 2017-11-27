@@ -90,6 +90,8 @@ public class SlaveTemplate implements Describable<SlaveTemplate> {
     public final String userData;
 
     public final String numExecutors;
+    
+    public final String additionalExecuters;
 
     public final String remoteAdmin;
 
@@ -150,7 +152,7 @@ public class SlaveTemplate implements Describable<SlaveTemplate> {
     @DataBoundConstructor
     public SlaveTemplate(String ami, String zone, SpotConfiguration spotConfig, String securityGroups, String remoteFS,
             InstanceType type, boolean ebsOptimized, String labelString, Node.Mode mode, String description, String initScript,
-            String tmpDir, String userData, String numExecutors, String remoteAdmin, AMITypeData amiType, String jvmopts,
+            String tmpDir, String userData, String numExecutors, String additionalExecuters, String remoteAdmin, AMITypeData amiType, String jvmopts,
             boolean stopOnTerminate, String subnetId, List<EC2Tag> tags, String idleTerminationMinutes,
             boolean usePrivateDnsName, String instanceCapStr, String iamInstanceProfile, boolean deleteRootOnTermination,
             boolean useEphemeralDevices, boolean useDedicatedTenancy, String launchTimeoutStr, boolean associatePublicIp,
@@ -170,6 +172,7 @@ public class SlaveTemplate implements Describable<SlaveTemplate> {
         this.tmpDir = tmpDir;
         this.userData = userData;
         this.numExecutors = Util.fixNull(numExecutors).trim();
+        this.additionalExecuters = Util.fixNull(additionalExecuters).trim();
         this.remoteAdmin = remoteAdmin;
         this.jvmopts = jvmopts;
         this.stopOnTerminate = stopOnTerminate;
@@ -210,7 +213,7 @@ public class SlaveTemplate implements Describable<SlaveTemplate> {
             boolean useDedicatedTenancy, String launchTimeoutStr, boolean associatePublicIp, String customDeviceMapping,
             boolean connectBySSHProcess) {
         this(ami, zone, spotConfig, securityGroups, remoteFS, type, ebsOptimized, labelString, mode, description, initScript,
-                tmpDir, userData, numExecutors, remoteAdmin, amiType, jvmopts, stopOnTerminate, subnetId, tags,
+                tmpDir, userData, numExecutors, "0", remoteAdmin, amiType, jvmopts, stopOnTerminate, subnetId, tags,
                 idleTerminationMinutes, usePrivateDnsName, instanceCapStr, iamInstanceProfile, false, useEphemeralDevices,
                 useDedicatedTenancy, launchTimeoutStr, associatePublicIp, customDeviceMapping, connectBySSHProcess, false);
     }
@@ -289,6 +292,14 @@ public class SlaveTemplate implements Describable<SlaveTemplate> {
             return Integer.parseInt(numExecutors);
         } catch (NumberFormatException e) {
             return EC2AbstractSlave.toNumExecutors(type);
+        }
+    }
+    
+    public int getAdditionalExecuters() {
+        try {
+            return Integer.parseInt(additionalExecuters);
+        } catch (NumberFormatException e) {
+            return 0;
         }
     }
 
