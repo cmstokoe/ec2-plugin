@@ -579,8 +579,19 @@ public class SlaveTemplate implements Describable<SlaveTemplate> {
                     diFilters.add(new Filter("instance.group-name").withValues(securityGroupSet));
                 }
             }
-
-            String userDataString = Base64.encodeBase64String(userData.getBytes(StandardCharsets.UTF_8));
+                        
+            String nodeName = null;
+            String nodeSecret = null;           
+            String userDataString = null;
+            if (amiType.isSelfConnecting()) {
+                nodeName = generateNodeName();
+                nodeSecret = generateNodeSecret(nodeName);               
+                userDataString = modifyUserData(nodeName, nodeSecret);
+                 
+            }
+            else {
+                 userDataString = Base64.encodeBase64String(userData.getBytes(StandardCharsets.UTF_8)); 
+            }
             riRequest.setUserData(userDataString);
 
             if(keyPair != null) {
@@ -616,20 +627,8 @@ public class SlaveTemplate implements Describable<SlaveTemplate> {
                 // Append template description as well to identify slaves provisioned per template
                 instTags.add(new Tag(EC2Tag.TAG_NAME_JENKINS_SLAVE_TYPE, EC2Cloud.getSlaveTypeTagValue(
                         EC2Cloud.EC2_SLAVE_TYPE_DEMAND, description)));
-            }
-
-            String nodeName = null;
-            String nodeSecret = null;
-
-            if (amiType.isSelfConnecting()) {
-                nodeName = generateNodeName();
-                nodeSecret = generateNodeSecret(nodeName);
-
-                instTags.add(new Tag(EC2Tag.TAG_NAME_JENKINS_URL, Jenkins.getInstance().getRootUrl()));
-                instTags.add(new Tag(EC2Tag.TAG_NAME_NODE_NAME, nodeName));
-                instTags.add(new Tag(EC2Tag.TAG_NAME_NODE_SECRET, nodeSecret));
-            }
-
+            }            
+           
             DescribeInstancesRequest diRequest = new DescribeInstancesRequest();
             diRequest.setFilters(diFilters);
 
@@ -872,8 +871,19 @@ public class SlaveTemplate implements Describable<SlaveTemplate> {
                     launchSpecification.setSecurityGroups(securityGroupSet);
                 }
             }
-
-            String userDataString = Base64.encodeBase64String(userData.getBytes(StandardCharsets.UTF_8));
+            
+            String nodeName = null;
+            String nodeSecret = null;           
+            String userDataString = null;
+            if (amiType.isSelfConnecting()) {
+                nodeName = generateNodeName();
+                nodeSecret = generateNodeSecret(nodeName);               
+                userDataString = modifyUserData(nodeName, nodeSecret);
+                 
+            }
+            else {
+                 userDataString = Base64.encodeBase64String(userData.getBytes(StandardCharsets.UTF_8)); 
+            }
 
             launchSpecification.setUserData(userDataString);
             launchSpecification.setKeyName(keyPair.getKeyName());
@@ -902,18 +912,6 @@ public class SlaveTemplate implements Describable<SlaveTemplate> {
                 }
                 instTags.add(new Tag(EC2Tag.TAG_NAME_JENKINS_SLAVE_TYPE, EC2Cloud.getSlaveTypeTagValue(
                         EC2Cloud.EC2_SLAVE_TYPE_SPOT, description)));
-            }
-
-            String nodeName = null;
-            String nodeSecret = null;
-
-            if (amiType.isSelfConnecting()) {
-                nodeName = generateNodeName();
-                nodeSecret = generateNodeSecret(nodeName);
-
-                instTags.add(new Tag(EC2Tag.TAG_NAME_JENKINS_URL, Jenkins.getInstance().getRootUrl()));
-                instTags.add(new Tag(EC2Tag.TAG_NAME_NODE_NAME, nodeName));
-                instTags.add(new Tag(EC2Tag.TAG_NAME_NODE_SECRET, nodeSecret));
             }
 
             if (StringUtils.isNotBlank(getIamInstanceProfile())) {
@@ -962,6 +960,44 @@ public class SlaveTemplate implements Describable<SlaveTemplate> {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException(e);
+        }
+    }
+
+    private String modifyUserData(String nodeName, String nodeSecret) {
+        String newUserData;
+        // The slave must know the Jenkins server to register with as well   
+        // as the name of the node in Jenkins it should register as. The   
+        // only    
+        // way to give information to the Spot slaves is through the ec2   
+        // user data   
+        String jenkinsUrl = Jenkins.getInstance().getRootUrl();
+        
+        // We must provide a unique node name for the slave to connect to  
+        // Jenkins.    
+        // We don't have the EC2 generated instance ID, or the Spot request    
+        // ID  
+        // until after the instance is requested, which is then too late to    
+        // set the 
+        // user-data for the request. Instead we generate a unique name from   
+        // UUID    
+        // so that the slave has a unique name within Jenkins to register  
+        // to.            
+
+        // We want to allow node configuration with cloud-init 
+        // The 'new' way is triggered by the presence of '${SLAVE_NAME}'' in   
+        // the user data   
+        // (which is not too much to ask)  
+        if (userData.contains("${SLAVE_NAME}")) {  
+            // The cloud-init compatible way   
+            newUserData = new String(userData);    
+            newUserData = newUserData.replace("${SLAVE_NAME}", nodeName); 
+            newUserData = newUserData.replace("${SLAVE_SECRET}", nodeSecret);  
+            newUserData = newUserData.replace("${JENKINS_URL}", jenkinsUrl); 
+            return Base64.encodeBase64String(newUserData.getBytes());
+        } 
+        else {
+            LOGGER.severe("Placeholders like ${SLAVE_NAME} not provided in userdata");
+            return userData;
         }
     }
 
