@@ -885,8 +885,10 @@ public class SlaveTemplate implements Describable<SlaveTemplate> {
                  userDataString = Base64.encodeBase64String(userData.getBytes(StandardCharsets.UTF_8)); 
             }
 
-            launchSpecification.setUserData(userDataString);
-            launchSpecification.setKeyName(keyPair.getKeyName());
+            launchSpecification.setUserData(userDataString);   
+            if(keyPair != null) {
+                launchSpecification.setKeyName(keyPair.getKeyName());
+            }
             launchSpecification.setInstanceType(type.toString());
 
             if (getAssociatePublicIp()) {
