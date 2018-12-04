@@ -408,7 +408,7 @@ public abstract class EC2Cloud extends Cloud {
 
         if(jenkinsServerUrl!=null) {
         // The instances must match the jenkins server url
-            filters.add(new Filter("tag:" + EC2Tag.TAG_NAME_JENKINS_SERVER_URL + "=" + jenkinsServerUrl));
+            filters.add(new Filter("tag:" + EC2Tag.TAG_NAME_JENKINS_URL + "=" + jenkinsServerUrl));
         }
 
         values = new ArrayList<String>();
@@ -507,7 +507,7 @@ public abstract class EC2Cloud extends Cloud {
 
     private boolean isEc2ProvisionedJenkinsSlave(List<Tag> tags, String serverUrl) {
         for (Tag tag : tags) {
-            if (StringUtils.equals(tag.getKey(), EC2Tag.TAG_NAME_JENKINS_SERVER_URL)) {
+            if (StringUtils.equals(tag.getKey(), EC2Tag.TAG_NAME_JENKINS_URL)) {
                 return StringUtils.equals(tag.getValue(), serverUrl);
             }
         }

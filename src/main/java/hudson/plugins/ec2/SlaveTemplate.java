@@ -31,10 +31,12 @@ import javax.servlet.ServletException;
 import hudson.util.Secret;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
+import jenkins.slaves.JnlpSlaveAgentProtocol;
 import jenkins.slaves.iterators.api.NodeIterator;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.RandomStringUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -54,6 +56,7 @@ import hudson.model.labels.LabelAtom;
 import hudson.plugins.ec2.util.DeviceMappingParser;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
+import hudson.slaves.NodeProperty;
 
 /**
  * Template of {@link EC2AbstractSlave} to launch.
@@ -597,6 +600,17 @@ public class SlaveTemplate implements Describable<SlaveTemplate> {
         for (Tag tag : instTags) {
             diFilters.add(new Filter("tag:" + tag.getKey()).withValues(tag.getValue()));
         }
+        
+	String nodeName = null;
+        String nodeSecret = null;
+
+	if (amiType.isSelfConnecting()) {
+                nodeName = generateNodeName();
+                nodeSecret = generateNodeSecret(nodeName);
+                instTags.add(new Tag(EC2Tag.TAG_NAME_JENKINS_URL, Jenkins.getInstance().getRootUrl()));
+                instTags.add(new Tag(EC2Tag.TAG_NAME_NODE_NAME, nodeName));
+                instTags.add(new Tag(EC2Tag.TAG_NAME_NODE_SECRET, nodeSecret));
+        }
 
         DescribeInstancesRequest diRequest = new DescribeInstancesRequest();
         diRequest.setFilters(diFilters);
@@ -667,7 +681,7 @@ public class SlaveTemplate implements Describable<SlaveTemplate> {
         try {
             List<EC2AbstractSlave> slaves = new ArrayList<>(newInstances.size());
             for (Instance instance : newInstances) {
-                slaves.add(newOndemandSlave(instance));
+                slaves.add(newOndemandSlave(instance, null, null));
                 logProvisionInfo("Return instance: " + instance);
             }
             return slaves;
@@ -884,7 +898,18 @@ public class SlaveTemplate implements Describable<SlaveTemplate> {
             }
 
             HashSet<Tag> instTags = buildTags(EC2Cloud.EC2_SLAVE_TYPE_SPOT);
+		
+            String nodeName = null;
+            String nodeSecret = null;
 
+            if (amiType.isSelfConnecting()) {
+                nodeName = generateNodeName();
+                nodeSecret = generateNodeSecret(nodeName);
+                instTags.add(new Tag(EC2Tag.TAG_NAME_JENKINS_URL, Jenkins.getInstance().getRootUrl()));
+                instTags.add(new Tag(EC2Tag.TAG_NAME_NODE_NAME, nodeName));
+                instTags.add(new Tag(EC2Tag.TAG_NAME_NODE_SECRET, nodeSecret));
+            }
+ 
             if (StringUtils.isNotBlank(getIamInstanceProfile())) {
                 launchSpecification.setIamInstanceProfile(new IamInstanceProfileSpecification().withArn(getIamInstanceProfile()));
             }
@@ -916,7 +941,7 @@ public class SlaveTemplate implements Describable<SlaveTemplate> {
 
                 LOGGER.info("Spot instance id in provision: " + spotInstReq.getSpotInstanceRequestId());
 
-                slaves.add(newSpotSlave(spotInstReq, slaveName));
+                slaves.add(newSpotSlave(spotInstReq, null, null));
             }
 
             return slaves;
@@ -950,7 +975,7 @@ public class SlaveTemplate implements Describable<SlaveTemplate> {
                 if (StringUtils.equals(t.getName(), EC2Tag.TAG_NAME_JENKINS_SLAVE_TYPE)) {
                     hasCustomTypeTag = true;
                 }
-                if (StringUtils.equals(t.getName(), EC2Tag.TAG_NAME_JENKINS_SERVER_URL)) {
+                if (StringUtils.equals(t.getName(), EC2Tag.TAG_NAME_JENKINS_URL)) {
                     hasJenkinsServerUrlTag = true;
                 }
             }
@@ -961,22 +986,37 @@ public class SlaveTemplate implements Describable<SlaveTemplate> {
         }
         JenkinsLocationConfiguration jenkinsLocation = JenkinsLocationConfiguration.get();
         if (!hasJenkinsServerUrlTag && jenkinsLocation != null && jenkinsLocation.getUrl() != null) {
-            instTags.add(new Tag(EC2Tag.TAG_NAME_JENKINS_SERVER_URL, jenkinsLocation.getUrl()));
+            instTags.add(new Tag(EC2Tag.TAG_NAME_JENKINS_URL, jenkinsLocation.getUrl()));
         }
         return instTags;
     }
 
-    protected EC2OndemandSlave newOndemandSlave(Instance inst) throws FormException, IOException {
-        return new EC2OndemandSlave(inst.getInstanceId(), description, remoteFS, getNumExecutors(), labels, mode, initScript,
-                tmpDir, remoteAdmin, jvmopts, stopOnTerminate, idleTerminationMinutes, inst.getPublicDnsName(),
-                inst.getPrivateDnsName(), EC2Tag.fromAmazonTags(inst.getTags()), parent.name, usePrivateDnsName,
-                useDedicatedTenancy, getLaunchTimeout(), amiType);
+    protected EC2OndemandSlave newOndemandSlave(Instance inst, String definedNodeName, String nodeSecret) throws FormException, IOException {
+	String instanceId = inst.getInstanceId();
+	String nodeName = definedNodeName;
+        String nodeDescription = "";
+	
+    	 if (nodeName == null) {
+            nodeName = description + " (" + instanceId + ")";
+        } else {
+            String descriptionFormat = "Public IP: %s Private IP: %s Intance Id: %s";
+            nodeDescription = String.format(descriptionFormat, inst.getPublicIpAddress() , inst.getPrivateIpAddress() , instanceId);
+        }
+         return new EC2OndemandSlave( nodeName, instanceId, nodeDescription, description, nodeSecret, remoteFS, getNumExecutors(), labels, mode, initScript, tmpDir, Collections.<NodeProperty<?>> emptyList(),remoteAdmin, jvmopts, stopOnTerminate, idleTerminationMinutes, inst.getPublicDnsName(), inst.getPrivateDnsName(), EC2Tag.fromAmazonTags(inst.getTags()), parent.name, usePrivateDnsName, useDedicatedTenancy, getLaunchTimeout(), amiType);
     }
+   
+    protected EC2SpotSlave newSpotSlave(SpotInstanceRequest sir, String definedNodeName, String nodeSecret) throws FormException, IOException {
+	String spotInstanceRequestId = sir.getSpotInstanceRequestId();
+	String nodeName = definedNodeName;
+	String nodeDescription = "";
 
-    protected EC2SpotSlave newSpotSlave(SpotInstanceRequest sir, String name) throws FormException, IOException {
-        return new EC2SpotSlave(name, sir.getSpotInstanceRequestId(), description, remoteFS, getNumExecutors(), mode, initScript,
-                tmpDir, labels, remoteAdmin, jvmopts, idleTerminationMinutes, EC2Tag.fromAmazonTags(sir.getTags()), parent.name,
-                usePrivateDnsName, getLaunchTimeout(), amiType);
+	 if (nodeName == null) {
+            nodeName = description + " (" + spotInstanceRequestId + ")";
+        } else {
+            nodeDescription = "Spot Intance Request Id: " + spotInstanceRequestId;
+        }
+         return new EC2SpotSlave(nodeName, spotInstanceRequestId, nodeDescription, description, nodeSecret, remoteFS, getNumExecutors(), mode, initScript, tmpDir, labels, Collections.<NodeProperty<?>> emptyList(), remoteAdmin, jvmopts, stopOnTerminate, idleTerminationMinutes, EC2Tag.fromAmazonTags(sir.getTags()), parent.name, usePrivateDnsName, getLaunchTimeout(), amiType);
+
     }
 
     /**
@@ -1059,8 +1099,15 @@ public class SlaveTemplate implements Describable<SlaveTemplate> {
         groupReq.withFilters(new Filter(filterName).withValues(filterValues));
         return ec2.describeSecurityGroups(groupReq);
     }
-
-    /**
+    
+    private String generateNodeName() {
+        return description + "-" + RandomStringUtils.randomAlphanumeric(8);
+    }
+     private String generateNodeSecret(String nodeName) {
+        return JnlpSlaveAgentProtocol.SLAVE_SECRET.mac(nodeName);
+    }
+ 
+   /**
      * Provisions a new EC2 slave based on the currently running instance on EC2, instead of starting a new one.
      */
     public EC2AbstractSlave attach(String instanceId, TaskListener listener) throws AmazonClientException, IOException {
@@ -1073,7 +1120,7 @@ public class SlaveTemplate implements Describable<SlaveTemplate> {
             DescribeInstancesRequest request = new DescribeInstancesRequest();
             request.setInstanceIds(Collections.singletonList(instanceId));
             Instance inst = ec2.describeInstances(request).getReservations().get(0).getInstances().get(0);
-            return newOndemandSlave(inst);
+            return newOndemandSlave(inst, null, null);
         } catch (FormException e) {
             throw new AssertionError(); // we should have discovered all
                                         // configuration issues upfront
@@ -1132,11 +1179,11 @@ public class SlaveTemplate implements Describable<SlaveTemplate> {
     }
 
     public Secret getAdminPassword() {
-        return amiType.isWindows() ? ((WindowsData) amiType).getPassword() : Secret.fromString("");
-    }
+    return amiType.isWindows() && !amiType.isSelfConnecting()? ((WindowsData) amiType).getPassword() : Secret.fromString("");
+    }	    
 
     public boolean isUseHTTPS() {
-        return amiType.isWindows() && ((WindowsData) amiType).isUseHTTPS();
+    	return amiType.isWindows() && !amiType.isSelfConnecting() && ((WindowsData) amiType).isUseHTTPS();
     }
 
     @Extension

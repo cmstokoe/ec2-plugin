@@ -33,11 +33,11 @@ THE SOFTWARE.
         <version>3.25</version>
     </parent>
 
-    <artifactId>ec2</artifactId>
+    <artifactId>ec2-dunelm</artifactId>
     <version>${revision}${changelist}</version>
     <packaging>hpi</packaging>
 
-    <name>Amazon EC2 plugin</name>
+    <name>Amazon EC2 plugin (Dunelm Fork)</name>
     <url>http://wiki.jenkins-ci.org/display/JENKINS/Amazon+EC2+Plugin</url>
     <licenses>
         <license>

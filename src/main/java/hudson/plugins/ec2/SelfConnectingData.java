@@ -8,40 +8,28 @@ import hudson.model.Descriptor;
 import hudson.util.Secret;
 import org.kohsuke.stapler.DataBoundConstructor;
 
-public class WindowsData extends AMITypeData {
+public class SelfConnectingData extends AMITypeData {
 
-    private final Secret password;
-    private final boolean useHTTPS;
     private final String bootDelay;
 
     @DataBoundConstructor
-    public WindowsData(String password, boolean useHTTPS, String bootDelay) {
-        this.password = Secret.fromString(password);
-        this.useHTTPS = useHTTPS;
+    public SelfConnectingData(String password, boolean useHTTPS, String bootDelay) {
         this.bootDelay = bootDelay;
     }
 
     @Override
     public boolean isWindows() {
-        return true;
+        return false;
     }
 
     @Override
     public boolean isUnix() {
         return false;
     }
-
-     @Override
+    
+    @Override
     public boolean isSelfConnecting() {
-        return false;
-    }
-
-    public Secret getPassword() {
-        return password;
-    }
-
-    public boolean isUseHTTPS() {
-        return useHTTPS;
+        return true;
     }
 
     public String getBootDelay() {
@@ -60,7 +48,7 @@ public class WindowsData extends AMITypeData {
     public static class DescriptorImpl extends Descriptor<AMITypeData> {
         @Override
         public String getDisplayName() {
-            return "windows";
+            return "self_connecting";
         }
     }
 
@@ -69,8 +57,6 @@ public class WindowsData extends AMITypeData {
         final int prime = 31;
         int result = 1;
         result = prime * result + ((bootDelay == null) ? 0 : bootDelay.hashCode());
-        result = prime * result + ((password == null) ? 0 : password.hashCode());
-        result = prime * result + (useHTTPS ? 1231 : 1237);
         return result;
     }
 
@@ -82,17 +68,11 @@ public class WindowsData extends AMITypeData {
             return false;
         if (this.getClass() != obj.getClass())
             return false;
-        final WindowsData other = (WindowsData) obj;
+        final SelfConnectingData other = (SelfConnectingData) obj;
         if (bootDelay == null) {
             if (other.bootDelay != null)
                 return false;
-        } else if (!bootDelay.equals(other.bootDelay))
-            return false;
-        if (password == null) {
-            if (other.password != null)
-                return false;
-        } else if (!password.equals(other.password))
-            return false;
-        return useHTTPS == other.useHTTPS;
+        }       
+        return bootDelay.equals(other.bootDelay);
     }
 }

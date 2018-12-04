@@ -55,6 +55,14 @@ public class EC2Computer extends SlaveComputer {
         return (EC2AbstractSlave) super.getNode();
     }
 
+    @Override
+    public String getJnlpMac() {
+        if (getNode().secret == null) {
+            return super.getJnlpMac();
+        }
+         return getNode().secret;
+    }
+
     @CheckForNull
     public String getInstanceId() {
         EC2AbstractSlave node = (EC2AbstractSlave) super.getNode();

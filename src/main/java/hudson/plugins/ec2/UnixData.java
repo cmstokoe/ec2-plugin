@@ -42,6 +42,10 @@ public class UnixData extends AMITypeData {
         return true;
     }
 
+      @Override
+    public boolean isSelfConnecting() {
+        return false;
+    }
     @Extension
     public static class DescriptorImpl extends Descriptor<AMITypeData> {
         @Override
