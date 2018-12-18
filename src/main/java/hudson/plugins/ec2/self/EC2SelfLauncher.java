@@ -47,7 +47,7 @@ public class EC2SelfLauncher extends JNLPLauncher {
             final long startTime = System.currentTimeMillis();
             while (true) {
                     long waitTime = System.currentTimeMillis() - startTime;
-                    if (computer.getNode().isConnected) {
+                    if (computer.isOnline()) {
                         logInfo(computer, listener, "Computer is connected after "  + (waitTime / 1000) + " seconds.");
                         return;
                     }
